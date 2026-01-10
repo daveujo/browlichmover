@@ -5,12 +5,12 @@
 (function() {
   'use strict';
   
-  // Engine state
-  let autoHint = false;
+  // Engine state - use window.autoHint for cross-module sync
+  window.autoHint = false;
   
   // Main turn processing
   async function processTurn() {
-    if (!autoHint) return;
+    if (!window.autoHint) return;
     if (window.isProcessing || window.pendingMove) return;
     if (window.gameEnded) return;
     
@@ -68,7 +68,7 @@
     
     // Load settings
     chrome.storage.local.get(['autorun'], (result) => {
-      autoHint = result.autorun === "1" || result.autorun === true;
+      window.autoHint = result.autorun === "1" || result.autorun === true;
     });
     
     setupPieceSelectMode();
@@ -83,7 +83,7 @@
     const cgWrap = $('.cg-wrap')[0];
     if (cgWrap) {
       const myCol = cgWrap.classList.contains('orientation-white') ? 'w' : 'b';
-      if (window.game.turn() === myCol && autoHint) {
+      if (window.game.turn() === myCol && window.autoHint) {
         setTimeout(processTurn, 500);
       }
     }
@@ -136,7 +136,7 @@
 
     // Periodic turn check
     setInterval(() => {
-      if (!window.gameEnded && !window.isProcessing && !window.pendingMoveUci && autoHint) {
+      if (!window.gameEnded && !window.isProcessing && !window.pendingMoveUci && window.autoHint) {
         const cg = $('.cg-wrap')[0];
         if (cg) {
           const myCol = cg.classList.contains('orientation-white') ? 'w' : 'b';
@@ -149,6 +149,21 @@
 
     console.log('[Init] ✅ Extension initialized');
   }
+  
+  // Listen for WebSocket ready event
+  window.addEventListener('websocket-opened', () => {
+    console.log('[Init] WebSocket opened, ready to process turns');
+    // Check if we should process a turn now
+    if (window.autoHint && !window.isProcessing && !window.gameEnded) {
+      const cgWrap = $('.cg-wrap')[0];
+      if (cgWrap) {
+        const myCol = cgWrap.classList.contains('orientation-white') ? 'w' : 'b';
+        if (window.game.turn() === myCol) {
+          setTimeout(processTurn, 100);
+        }
+      }
+    }
+  });
   
   // Export functions
   window.processTurn = processTurn;

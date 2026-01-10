@@ -23,6 +23,7 @@
     'variedMode', 'panicMode', 'configMode', 'vpnPingOffset'
   ], (result) => {
     autoHint = result.autorun === "1" || result.autorun === true;
+    window.autoHint = autoHint; // Sync to window for cross-module access
     showArrows = result.showArrows !== false;
     pieceSelectMode = result.pieceSelectMode === true;
     humanMode = result.humanMode !== false;
@@ -142,6 +143,7 @@
     autoBtn.style.backgroundColor = autoHint ? "green" : "";
     autoBtn.onclick = () => {
       autoHint = !autoHint;
+      window.autoHint = autoHint; // Sync to window for cross-module access
       chrome.storage.local.set({ autorun: autoHint ? "1" : "0" });
       autoBtn.innerText = autoHint ? 'Auto-ON' : 'Auto-OFF';
       autoBtn.style.backgroundColor = autoHint ? "green" : "";

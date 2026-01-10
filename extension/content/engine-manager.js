@@ -23,64 +23,79 @@ let pendingResolve = null;
 // Initialize Normal Engine (stockfish.js creates global `stockfish` worker)
 function initializeNormalEngine() {
   return new Promise((resolve) => {
-    // stockfish.js creates window.stockfish as a Worker
-    if (typeof stockfish !== 'undefined' && stockfish instanceof Worker) {
-      normalEngine = stockfish;
+    // Wait a bit for stockfish.js to create the worker
+    let attempts = 0;
+    const checkEngine = setInterval(() => {
+      attempts++;
       
-      normalEngine.onmessage = (e) => {
-        const data = String(e.data || e);
+      // Check multiple ways stockfish might be exposed
+      const sf = window.stockfish || globalThis.stockfish;
+      
+      if (sf && (sf instanceof Worker || typeof sf.postMessage === 'function')) {
+        clearInterval(checkEngine);
+        normalEngine = sf;
         
-        if (data === 'readyok') {
-          engineReady = true;
-          console.log('[Normal Engine] ✅ Ready!');
-        }
-        
-        // Parse info lines for MultiPV
-        if (data.startsWith('info ') && pendingResolve) {
-          const parsed = parseInfoLine(data);
-          if (parsed && parsed.firstMove) {
-            currentPVs.set(parsed.multipv, parsed);
+        normalEngine.onmessage = (e) => {
+          const data = String(e.data || e);
+          
+          if (data === 'readyok') {
+            engineReady = true;
+            console.log('[Normal Engine] ✅ Ready!');
           }
-        }
+          
+          // Parse info lines for MultiPV
+          if (data.startsWith('info ') && pendingResolve) {
+            const parsed = parseInfoLine(data);
+            if (parsed && parsed.firstMove) {
+              currentPVs.set(parsed.multipv, parsed);
+            }
+          }
+          
+          // Best move signals calculation complete
+          if (data.startsWith('bestmove') && pendingResolve) {
+            const pvArray = [...currentPVs.entries()]
+              .sort((a, b) => a[0] - b[0])
+              .map(([, v]) => v);
+            
+            window.cachedPVs = pvArray;
+            window.cachedPVsFen = window._currentCalculatingFen;
+            
+            pendingResolve(pvArray);
+            pendingResolve = null;
+            currentPVs.clear();
+          }
+        };
         
-        // Best move signals calculation complete
-        if (data.startsWith('bestmove') && pendingResolve) {
-          const pvArray = [...currentPVs.entries()]
-            .sort((a, b) => a[0] - b[0])
-            .map(([, v]) => v);
-          
-          window.cachedPVs = pvArray;
-          window.cachedPVsFen = window._currentCalculatingFen;
-          
-          pendingResolve(pvArray);
-          pendingResolve = null;
-          currentPVs.clear();
-        }
-      };
-      
-      // Configure engine
-      normalEngine.postMessage('uci');
-      normalEngine.postMessage('setoption name Threads value 1');
-      normalEngine.postMessage('setoption name Contempt value 20');
-      normalEngine.postMessage('setoption name MultiPV value 4');
-      normalEngine.postMessage('isready');
-      
-      const checkReady = setInterval(() => {
-        if (engineReady) {
-          clearInterval(checkReady);
+        // Configure engine
+        normalEngine.postMessage('uci');
+        normalEngine.postMessage('setoption name Threads value 1');
+        normalEngine.postMessage('setoption name Contempt value 20');
+        normalEngine.postMessage('setoption name MultiPV value 4');
+        normalEngine.postMessage('isready');
+        
+        // Wait for ready
+        const readyCheck = setInterval(() => {
+          if (engineReady) {
+            clearInterval(readyCheck);
+            resolve();
+          }
+        }, 50);
+        
+        setTimeout(() => {
+          clearInterval(readyCheck);
+          engineReady = true;
           resolve();
-        }
-      }, 50);
+        }, 3000);
+        
+        return;
+      }
       
-      setTimeout(() => {
-        clearInterval(checkReady);
-        engineReady = true;
+      if (attempts > 30) { // 3 seconds
+        clearInterval(checkEngine);
+        console.error('[Normal Engine] ❌ stockfish worker not found after waiting');
         resolve();
-      }, 3000);
-    } else {
-      console.error('[Normal Engine] stockfish worker not found');
-      resolve();
-    }
+      }
+    }, 100);
   });
 }
 
