@@ -6,65 +6,7 @@
   'use strict';
   
   // Engine state
-  let engineReady = false;
   let autoHint = false;
-  
-  // Stockfish helpers (simplified for extension - actual engine runs in background)
-  function parseInfoLine(text) {
-    if (!text.startsWith('info ')) return null;
-    const mpv = text.match(/multipv (\d+)/);
-    const cp = text.match(/score cp (-?\d+)/);
-    const mate = text.match(/score mate (-?\d+)/);
-    const pv = text.match(/ pv (.+)$/);
-    if (!pv) return null;
-
-    let evalCp = null, evalType = 'cp', mateVal = null;
-    if (cp) {
-      evalCp = parseInt(cp[1], 10);
-    } else if (mate) {
-      mateVal = parseInt(mate[1], 10);
-      evalCp = (mateVal > 0 ? 100000 : -100000) + mateVal;
-      evalType = 'mate';
-    } else {
-      return null;
-    }
-
-    return {
-      multipv: mpv ? parseInt(mpv[1], 10) : 1,
-      evalType, evalCp, mateVal,
-      pv: pv[1].trim(),
-      firstMove: pv[1].trim().split(' ')[0]
-    };
-  }
-  
-  // For extension, we'll communicate with background script for engine calculations
-  // This is a placeholder - needs proper implementation with message passing
-  function getMultiPV(fen, retryCount = 0) {
-    return new Promise((resolve) => {
-      // Check for panic mode bypass
-      const panicMode = window.panicModeEnabled || false;
-      if (panicMode) {
-        console.log(`[⚡ PANIC BYPASS] Panic mode enabled - Using panic engine`);
-        // Trigger panic engine calculation via background
-        chrome.runtime.sendMessage({
-          type: 'PANIC_CALCULATE',
-          fen: fen
-        });
-        resolve([]);
-        return;
-      }
-      
-      // Use cached PVs if available for same position
-      if (window.cachedPVs && window.cachedPVsFen === fen) {
-        resolve(window.cachedPVs);
-        return;
-      }
-      
-      // For now, return empty - actual implementation needs background worker
-      console.log('[Engine] MultiPV calculation requested for:', fen);
-      resolve([]);
-    });
-  }
   
   // Main turn processing
   async function processTurn() {
@@ -84,7 +26,7 @@
       const fen = window.game.fen();
       const startTime = Date.now();
       
-      const pvs = await getMultiPV(fen);
+      const pvs = await window.getMultiPV(fen);
       const engineMs = Date.now() - startTime;
       
       if (pvs && pvs.length > 0) {
@@ -116,8 +58,13 @@
   async function run() {
     console.log('[Init] Starting extension...');
     
-    // Initialize engines via background
-    chrome.runtime.sendMessage({ type: 'INIT_ENGINES' });
+    // Initialize engines
+    if (window.initializeNormalEngine) {
+      await window.initializeNormalEngine();
+    }
+    if (window.initializePanicEngine) {
+      window.initializePanicEngine();
+    }
     
     // Load settings
     chrome.storage.local.get(['autorun'], (result) => {
@@ -205,7 +152,6 @@
   
   // Export functions
   window.processTurn = processTurn;
-  window.getMultiPV = getMultiPV;
   
   // Start when DOM is ready
   window.waitForElement('rm6').then(() => run()).catch(() => {
