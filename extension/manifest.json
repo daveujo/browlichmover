@@ -20,7 +20,10 @@
       "js": [
         "lib/jquery-3.6.0.min.js",
         "lib/chess.js",
+        "lib/stockfish.js",
+        "lib/stockfish8.js",
         "lib/presets.js",
+        "content/engine-manager.js",
         "content/websocket-interceptor.js",
         "content/game-state.js",
         "content/timing-calculator.js",
@@ -35,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/stockfish8.js"],
+      "resources": ["lib/stockfish.js", "lib/stockfish8.js"],
       "matches": ["https://lichess.org/*"]
     }
   ],
