@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Browlich Mover",
+  "version": "1.0.0",
+  "description": "Chess automation extension for Lichess - Speed optimized with smart lag compensation",
+  "permissions": [
+    "storage",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "https://lichess.org/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://lichess.org/*"],
+      "js": [
+        "lib/jquery-3.6.0.min.js",
+        "lib/chess.js",
+        "lib/presets.js",
+        "content/websocket-interceptor.js",
+        "content/game-state.js",
+        "content/timing-calculator.js",
+        "content/arrow-renderer.js",
+        "content/move-selector.js",
+        "content/move-executor.js",
+        "content/ui-controller.js",
+        "content/main.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/stockfish8.js"],
+      "matches": ["https://lichess.org/*"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
