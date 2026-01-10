@@ -202,5 +202,44 @@
   window.WebSocket = webSocketProxy;
   window.currentAck = currentAck;
   
+  // Try to capture existing WebSocket from Lichess
+  function captureExistingWebSocket() {
+    // Method 1: Check lichess global
+    if (window.lichess?.socket?.ws) {
+      webSocketWrapper = window.lichess.socket.ws;
+      window.webSocketWrapper = webSocketWrapper;
+      console.log('[WebSocket] ✅ Captured existing Lichess socket');
+      return true;
+    }
+    
+    // Method 2: Find WebSocket in window properties
+    for (const key in window) {
+      try {
+        if (window[key] instanceof WebSocket && window[key].readyState === 1) {
+          webSocketWrapper = window[key];
+          window.webSocketWrapper = webSocketWrapper;
+          console.log('[WebSocket] ✅ Found existing WebSocket');
+          return true;
+        }
+      } catch (e) {}
+    }
+    return false;
+  }
+  
+  // Retry capturing existing socket
+  let captureAttempts = 0;
+  const captureInterval = setInterval(() => {
+    if (window.webSocketWrapper && window.webSocketWrapper.readyState === 1) {
+      clearInterval(captureInterval);
+      return;
+    }
+    if (captureExistingWebSocket()) {
+      clearInterval(captureInterval);
+    }
+    if (++captureAttempts > 50) { // 5 seconds
+      clearInterval(captureInterval);
+    }
+  }, 100);
+  
   console.log('[WebSocket Interceptor] ✅ Initialized');
 })();

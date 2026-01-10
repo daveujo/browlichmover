@@ -40,18 +40,10 @@
   }
   
   function getArrowCoords(sq, color) {
-    const file = sq.charCodeAt(0) - 'a'.charCodeAt(0);
-    const rank = parseInt(sq[1]) - 1;
-    
-    let x, y;
-    if (color === 'white') {
-      x = file + 0.5;
-      y = 8 - rank - 0.5;
-    } else {
-      x = 7 - file + 0.5;
-      y = rank + 0.5;
-    }
-    
+    const f = sq[0].toLowerCase(), r = sq[1];
+    let x = { a: -3.5, b: -2.5, c: -1.5, d: -0.5, e: 0.5, f: 1.5, g: 2.5, h: 3.5 }[f];
+    let y = { 1: 3.5, 2: 2.5, 3: 1.5, 4: 0.5, 5: -0.5, 6: -1.5, 7: -2.5, 8: -3.5 }[r];
+    if (color === "black") { x = -x; y = -y; }
     return [x, y];
   }
   
