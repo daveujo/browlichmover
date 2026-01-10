@@ -12,6 +12,9 @@ stockfish8.js
 stockfish.js
 stockfish*.js
 
+# Icon generation
+icons/create_icons.sh
+
 # Development
 *.log
 *.tmp
