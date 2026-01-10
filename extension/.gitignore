@@ -1,0 +1,19 @@
+# Extension Library Dependencies
+# Download these files manually:
+
+# jQuery 3.6.0
+jquery-3.6.0.min.js
+
+# Chess.js
+chess.js
+
+# Stockfish Engine
+stockfish8.js
+stockfish.js
+stockfish*.js
+
+# Development
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
