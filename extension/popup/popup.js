@@ -49,8 +49,9 @@
             chrome.tabs.sendMessage(tabs[0].id, {
               type: 'autorun-changed',
               value: newState
-            }).catch(() => {
-              // Content script might not be loaded yet, that's ok
+            }).catch((error) => {
+              // Expected error: Could not establish connection when content script is not injected yet
+              console.log('Content script not ready:', error.message);
             });
           }
         });
@@ -70,8 +71,9 @@
           chrome.tabs.sendMessage(tabs[0].id, {
             type: 'preset-changed',
             value: newPreset
-          }).catch(() => {
-            // Content script might not be loaded yet, that's ok
+          }).catch((error) => {
+            // Expected error: Could not establish connection when content script is not injected yet
+            console.log('Content script not ready:', error.message);
           });
         }
       });
